@@ -1,4 +1,4 @@
-`timescale 1ns/ 1ns
+`timescale 1us/ 1us
 module test_rx_fsm;
 
 reg [1:0] state_in;
@@ -11,62 +11,63 @@ wire latch_flag;
 wire finish;
 wire finish_fsm;
 
-rx_fsm rx
-	(
-		.state_in(state_in),
-		.clk(clk),
-		.rst(rst),
-		.data_rx(data_rx),
-		.receive_data(receive_data),
-		.sck_rx(sck_rx),
-		.latch_flag(latch_flag),
-		.finish(finish),
-		.finish_fsm(finish_fsm)
-	);
-
-wire [2:0] state = rx.state;
-wire [5:0] cnt = rx.cnt;
+integer latch_cnt;
+integer finish_cnt;
 reg [31:0] transmit_data;
 reg [4:0] int_cnt;
 
+rx_fsm rx
+(
+	.state_in(state_in),
+	.clk(clk),
+	.rst(rst),
+	.data_rx(data_rx),
+	.receive_data(receive_data),
+	.sck_rx(sck_rx),
+	.latch_flag(latch_flag),
+	.finish(finish),
+	.finish_fsm(finish_fsm)
+);
+
+
 initial
 begin
+	latch_cnt = 0;
+	finish_cnt = 0;
 	transmit_data = 32'd1_456_478_547;
 	state_in = 0;
 	clk = 0;
 	rst = 1;
 	int_cnt = 0;
 	
-	repeat(2)
-	begin
-		#1;	clk = !clk;
-		#1;	clk = !clk;
-	end
-	
-	rst = 0;
-	
-	repeat(1)
-	begin
-		#1;	clk = !clk;
-		#1;	clk = !clk;
-	end
+	#4; rst = 0; #2;
 	
 	rst = 1;
 	state_in = 1;
 	
-	repeat(2)
+	while (!finish_fsm)
 	begin
-		#1;	clk = !clk;
-		#1;	clk = !clk;
+		#2;
+		state_in = 0;
+		if (latch_flag)
+			latch_cnt = latch_cnt + 1;
+		if (finish)
+			finish_cnt = finish_cnt + 1;
 	end
 	
-	state_in = 0;
-	repeat(120)
-	begin
-		#1;	clk = !clk;
-		#1;	clk = !clk;
-	end
+	if (transmit_data == receive_data && latch_cnt == 3 && finish_cnt == 5)
+		$display("RX OK");
+	if (transmit_data != receive_data)
+		$display("RX BAD value");
+	if (latch_cnt != 3)
+		$display("RX BAD latch");
+	if (finish_cnt != 5)
+		$display("RX BAD finish");
 	
+end
+
+always begin
+	#1; clk = !clk;
 end
 
 always@ (posedge sck_rx)

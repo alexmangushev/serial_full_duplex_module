@@ -1,4 +1,4 @@
-`timescale 1ns/ 1ns
+`timescale 1us/ 1us
 module test_TOP;
 
 parameter DATA_WIDTH_BASE = 5;
@@ -16,9 +16,6 @@ reg start;
 wire finish;
 wire busy;
 reg mode;
-
-wire [3:0] top_cnt;
-wire [1:0] top_state;
 
 integer int_cnt;
 integer latch_cnt;
@@ -42,14 +39,11 @@ TOP #(DATA_WIDTH_BASE) T
 	.mode(mode)
 );
 
-assign top_cnt = T.cnt;
-assign top_state = T.next_state;
-
 initial
 begin
-	repeat (2) begin
-	clk = 0;
 	rst = 0;
+	clk = 0;
+	repeat (2) begin
 	start = 0;
 	mode = 0;
 	transmit_data = 32'd1_456_478_547;

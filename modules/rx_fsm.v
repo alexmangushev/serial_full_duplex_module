@@ -44,7 +44,7 @@ module rx_fsm
 		next_state = FSM_SCK_RX_0;
 	FSM_SCK_RX_0:
 		if (!first_time) next_state = FSM_LATCH_0;
-		else if (cnt != 63) next_state = FSM_READ_BIT;
+		else if (cnt != 2 ** (DATA_WIDTH_BASE + 1) - 1) next_state = FSM_READ_BIT;
 		else next_state = FSM_FINISH;
 	FSM_LATCH_0:
 		next_state = FSM_READ_BIT;

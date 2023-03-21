@@ -1,5 +1,7 @@
-`timescale 1ns/ 1ns
+`timescale 1us/ 1us
 module test_tx_fsm;
+
+parameter DATA_WIDTH_BASE = 5;
 
 reg [1:0] state_in;
 reg clk;
@@ -10,6 +12,10 @@ wire data_tx;
 wire latch_flag; 
 wire finish;
 wire finish_fsm;
+
+integer latch_cnt;
+integer finish_cnt;
+reg [2 ** DATA_WIDTH_BASE - 1:0] tx_data;
 
 tx_fsm tx
 (
@@ -24,46 +30,52 @@ tx_fsm tx
 	.finish_fsm(finish_fsm)
 );
 
-wire [2:0] state = tx.state;
-wire [4:0] cnt = tx.cnt;
 assign transmit_data = 32'd1_456_478_547;
 
 initial
 begin
+	latch_cnt = 0;
+	finish_cnt = 0;
 	state_in = 0;
 	clk = 0;
 	rst = 1;
 	
-	repeat(2)
-	begin
-		#1;	clk = !clk;
-		#1;	clk = !clk;
-	end
-	
-	rst = 0;
-	
-	repeat(1)
-	begin
-		#1;	clk = !clk;
-		#1;	clk = !clk;
-	end
+	#4; rst = 0; #2;
 	
 	rst = 1;
 	state_in = 2;
 	
-	repeat(2)
+	#2; state_in = 0;
+	
+	while (!finish_fsm)
 	begin
-		#1;	clk = !clk;
-		#1;	clk = !clk;
+		#2;
+		if (latch_flag)
+			latch_cnt = latch_cnt + 1;
+		if (finish)
+			finish_cnt = finish_cnt + 1;
 	end
 	
-	state_in = 0;
-	repeat(120)
-	begin
-		#1;	clk = !clk;
-		#1;	clk = !clk;
-	end
 	
+	if (transmit_data == tx_data && latch_cnt == 3  && finish_cnt == 5)
+		$display("TX OK");
+	if (transmit_data != tx_data)
+		$display("TX BAD value");
+	if (latch_cnt != 3)
+		$display("TX BAD latch");
+	if (finish_cnt != 5)
+		$display("TX BAD finish");
+	
+end
+
+always begin
+	#1; clk = !clk;
+end
+
+always@ (posedge sck_tx)
+begin
+	tx_data <= {tx_data[2 ** DATA_WIDTH_BASE - 2:0], data_tx};
+
 end
 	
 endmodule
